@@ -30,3 +30,109 @@
 *.exe
 *.out
 *.app
+vsocky
+vsocky_test
+bench_*
+!bench_*.cpp
+
+# CMake specific
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+*.cmake
+!CMakeLists.txt
+
+# Build directories
+build/
+build-*/
+out/
+bin/
+lib/
+cmake-build-*/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.cache/
+.clangd/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Profile and coverage data
+gmon.out
+*.gcda
+*.gcno
+*.gcov
+*.profdata
+*.profraw
+callgrind.out*
+coverage/
+coverage.info
+*.info
+
+# Core dumps
+core
+core.*
+vgcore.*
+
+# Test outputs
+test_output/
+test_results/
+*.log
+test_scenario.json
+stress_test.sh
+
+# Performance and benchmark results
+benchmark_results/
+perf.data
+perf.data.old
+flamegraph.svg
+
+# Documentation build outputs
+docs/html/
+docs/latex/
+*.doxygen
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Debug symbols
+*.dSYM/
+*.debug
+
+# Static analysis
+.clang-tidy-cache/
+compile_commands.json.bak
+.cppcheck/
+
+# Package files
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# Local configuration
+.env
+.env.local
+config.local.json

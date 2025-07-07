@@ -1,0 +1,151 @@
+# .clang-format
+# Code style configuration for vsocky project
+# Based on Google style with modifications for system programming
+
+# Start with Google style as base
+BasedOnStyle: Google
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+IndentCaseLabels: true
+IndentCaseBlocks: false
+NamespaceIndentation: None
+IndentPPDirectives: BeforeHash
+
+# Line length - 100 is reasonable for modern monitors
+ColumnLimit: 100
+
+# Brace placement - Allman style for clarity in system code
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: false  # Keep K&R style for if/while/for
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+
+# Function style
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+IndentWrappedFunctionNames: false
+
+# Pointer and reference alignment - right align for C++ style
+PointerAlignment: Right
+ReferenceAlignment: Right
+DerivePointerAlignment: false
+
+# Includes - group and sort for clarity
+IncludeBlocks: Regroup
+IncludeCategories:
+  # System headers in angle brackets
+  - Regex: '^<[^.]+>$'
+    Priority: 1
+  # Linux/POSIX headers
+  - Regex: '^<(sys|linux|netinet|arpa)/.*>$'
+    Priority: 2
+  # C++ standard library headers
+  - Regex: '^<[^.]+\.h>$'
+    Priority: 3
+  # Other libraries
+  - Regex: '^<.*>$'
+    Priority: 4
+  # Project headers with quotes
+  - Regex: '^".*"$'
+    Priority: 5
+
+# Spacing
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpaceBeforeRangeBasedForLoopColon: true
+
+# Comments
+SpacesBeforeTrailingComments: 2
+CommentPragmas: '^ IWYU pragma:|^ NOLINT'
+AlignTrailingComments: true
+
+# Line breaking
+AlwaysBreakBeforeMultilineStrings: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: true
+AlwaysBreakTemplateDeclarations: Yes
+
+# Other C++ features
+Cpp11BracedListStyle: true
+Standard: c++23
+FixNamespaceComments: true
+AllowShortLambdasOnASingleLine: All
+AllowShortEnumsOnASingleLine: false
+
+# Alignment options for readability
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false  # Can hurt readability
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: true        # Useful for constants
+AlignEscapedNewlines: Left
+AlignOperands: true
+
+# Penalty settings - prefer breaking at logical points
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 60
+
+# Macro handling
+ForEachMacros: []
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+
+# Sorting
+SortIncludes: true
+SortUsingDeclarations: true
+
+# Keep empty lines for readability
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# Bin packing - don't pack for readability
+BinPackArguments: false
+BinPackParameters: false
+
+# Constructor initializers - one per line for clarity
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+
+# Raw string formats
+RawStringFormats:
+  - Language: Cpp
+    Delimiters:
+      - cc
+      - CC
+      - cpp
+      - Cpp
+      - CPP
+      - 'c++'
+      - 'C++'
+    CanonicalDelimiter: ''

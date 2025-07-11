@@ -1,0 +1,57 @@
+# Ubuntu build environment for development
+FROM ubuntu:24.04
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    # Build essentials
+    cmake \
+    g++-14 \
+    git \
+    make \
+    pkg-config \
+    # Development tools
+    gdb \
+    valgrind \
+    strace \
+    ltrace \
+    # Performance tools
+    linux-tools-generic \
+    linux-tools-common \
+    # Static analysis
+    clang-tidy \
+    cppcheck \
+    # Utilities
+    file \
+    binutils \
+    time \
+    htop \
+    # Build optimization
+    ccache \
+    && rm -rf /var/lib/apt/lists/*
+
+# Handle existing user with UID 1000
+RUN if id -u 1000 >/dev/null 2>&1; then \
+        usermod -l builder $(id -nu 1000) && \
+        groupmod -n builder $(id -ng 1000) && \
+        usermod -d /home/builder -m builder; \
+    else \
+        useradd -m -u 1000 builder; \
+    fi
+
+# Set up development environment
+USER builder
+WORKDIR /home/builder
+
+# Better terminal support for development
+ENV TERM=xterm-256color
+ENV CMAKE_COLOR_DIAGNOSTICS=ON
+ENV GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+# Enable ccache by default
+ENV PATH="/usr/lib/ccache:${PATH}"
+
+# Default to bash for better development experience
+CMD ["/bin/bash"]

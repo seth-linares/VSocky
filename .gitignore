@@ -136,3 +136,8 @@ compile_commands.json.bak
 .env
 .env.local
 config.local.json
+
+
+# Dependencies
+third_party/*
+!third_party/.gitkeep

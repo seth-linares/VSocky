@@ -1,0 +1,83 @@
+# ========================================================================
+# Dockerfile.vsocky-runtime - FOR FUTURE USE
+# ========================================================================
+# Purpose: Build a container image that will be converted to a Firecracker
+#          VM root filesystem. This is NOT for development - it's for 
+#          creating the actual VM image that will run in production.
+#
+# Usage: This will be used much later in the project when you're ready to:
+#        1. Build the final vsocky binary
+#        2. Package it with language runtimes
+#        3. Convert to a Firecracker-bootable rootfs
+#
+# DO NOT USE THIS during development - use build-local.sh and build-alpine.sh
+# ========================================================================
+
+FROM alpine:3.22 AS builder
+
+# Install only build essentials
+RUN apk add --no-cache \
+    cmake \
+    make \
+    g++ \
+    git \
+    linux-headers \
+    musl-dev
+
+# Copy source and build
+WORKDIR /build
+COPY . .
+
+# Build static binary for VM use
+RUN cmake -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_STATIC=ON \
+    -DUSE_SIMDJSON=ON && \
+    cmake --build build -j$(nproc) && \
+    strip build/vsocky
+
+# Runtime stage - this becomes the VM filesystem
+FROM alpine:3.22
+
+# Install language runtimes that vsocky will execute
+RUN apk add --no-cache \
+    # Python runtime
+    python3 \
+    python3-dev \
+    # Node.js for TypeScript
+    nodejs \
+    npm \
+    # Base system utilities
+    busybox-extras \
+    && rm -rf /var/cache/apk/*
+
+# Install compilers for compiled languages
+RUN apk add --no-cache \
+    # C++ compiler and standard library
+    g++ \
+    musl-dev \
+    # Rust toolchain
+    rust \
+    cargo \
+    # C# runtime (Mono for Alpine)
+    mono \
+    mono-dev \
+    && rm -rf /var/cache/apk/*
+
+# TypeScript support
+RUN npm install -g typescript esbuild
+
+# Copy vsocky binary from builder
+COPY --from=builder /build/build/vsocky /usr/local/bin/vsocky
+
+# Create required directories
+RUN mkdir -p /sandbox /tmp/vsocky && \
+    chmod 755 /sandbox && \
+    chmod 1777 /tmp/vsocky
+
+# Create sandbox user (vsocky will switch to this)
+RUN adduser -D -H -s /bin/false sandbox
+
+# This container is meant to be converted to a rootfs, not run directly
+# The actual init system in the VM will start vsocky
+CMD ["/bin/sh", "-c", "echo 'This image should be converted to a Firecracker rootfs, not run as a container'"]

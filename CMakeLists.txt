@@ -1,111 +1,154 @@
 cmake_minimum_required(VERSION 3.28.3)
-project(vsocky VERSION 1.0 LANGUAGES CXX)
+project(vsocky VERSION 0.1.0 LANGUAGES CXX)
 
-# Enforce C++23 standard - we want the latest performance features
+cmake_policy(SET CMP0069 NEW) 
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED true)
-set(CMAKE_CXX_EXTENSIONS OFF)  # Ensure portability
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Default to Release build for optimization
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
+# Export compile commands for IDE support
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler-specific flags for maximum performance
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # Base optimization flags
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-    
-    # Architecture-specific optimization (careful with this in VMs)
-    # For now, we'll use conservative optimizations that work everywhere
-    add_compile_options(-march=x86-64-v2)  # Baseline modern x86-64
-    
-    # Link-time optimization for smaller, faster binary
-    add_compile_options(-flto)
-    add_link_options(-flto)
-    
-    # Remove features we don't need for smaller binary
-    add_compile_options(-fno-exceptions)  # We'll use error codes
-    add_compile_options(-fno-rtti)       # No runtime type information
-    
-    # Optimize for size as well (helps with VM startup)
-    add_compile_options(-ffunction-sections -fdata-sections)
-    add_link_options(-Wl,--gc-sections)
-    
-    # Security hardening (with minimal performance impact)
-    add_compile_options(-D_FORTIFY_SOURCE=2)
-    add_compile_options(-fstack-protector-strong)
-    add_link_options(-Wl,-z,relro -Wl,-z,now)
-    
-    # Warnings to catch issues early
-    add_compile_options(-Wall -Wextra -Wpedantic)
-    add_compile_options(-Werror)  # Treat warnings as errors
-    
-    # Static linking for standalone binary
-    add_link_options(-static)
-    
-    # Strip symbols in release mode
-    add_link_options(-s)
-endif()
+# Options
+option(BUILD_STATIC "Build static binary" ON)
+option(USE_SIMDJSON "Use simdjson for JSON parsing" ON)
 
-# Define build options
-option(ENABLE_TESTING "Enable test builds" ON)
-option(ENABLE_PROFILING "Enable profiling support" OFF)
-option(ENABLE_DEBUG_LOGGING "Enable debug logging" OFF)
+# Include our compiler flags (now without architecture flags)
+include(cmake/CompilerFlags.cmake)
 
-# Configure compile definitions based on options
-if(ENABLE_DEBUG_LOGGING)
-    add_compile_definitions(DEBUG_LOGGING)
-endif()
+# Find packages
+include(FetchContent)
 
-if(ENABLE_PROFILING)
-    add_compile_options(-pg)
-    add_link_options(-pg)
-endif()
+# Fetch simdjson with proper configuration
+if(USE_SIMDJSON)
+    # CRITICAL: Configure simdjson before fetching to avoid architecture issues
+    # Use new non-deprecated options (simdjson v3.10.0+)
+    set(SIMDJSON_DEVELOPER_MODE OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)  # For static library
 
-# Include directories
-include_directories(include)
-
-# Main executable
-add_executable(vsocky 
-    src/main.cpp
-    src/vsocket.cpp
-    src/protocol.cpp
-    src/executor.cpp
-    src/monitor.cpp
-)
-
-# Test executable (only if testing enabled)
-if(ENABLE_TESTING)
-    add_executable(vsocky_test
-        src/test/test_main.cpp
-        src/test/test_protocol.cpp
-        src/test/test_executor.cpp
-        src/test/mock_vsocket.cpp
-        # Link same sources but exclude main.cpp
-        src/vsocket.cpp
-        src/protocol.cpp
-        src/executor.cpp
-        src/monitor.cpp
+    # Suppress warnings from simdjson
+    set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
+    set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE BOOL "" FORCE)
+    
+    # Disable simdjson tests and tools to speed up build
+    set(SIMDJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SIMDJSON_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    
+    # Temporarily remove any global architecture flags for simdjson
+    set(ORIGINAL_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(ORIGINAL_C_FLAGS ${CMAKE_C_FLAGS})
+    
+    # Remove problematic flags if they exist
+    string(REGEX REPLACE "-march=[^ ]*" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "-mtune=[^ ]*" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "-mavx[^ ]*" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REGEX REPLACE "-msse[^ ]*" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    
+    FetchContent_Declare(
+        simdjson
+        GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+        GIT_TAG v3.13.0  # Latest stable - uses new CMake options
+        GIT_SHALLOW TRUE
     )
     
-    # Enable testing
-    enable_testing()
-    add_test(NAME vsocky_test COMMAND vsocky_test)
+    FetchContent_MakeAvailable(simdjson)
+    
+    # Restore original flags
+    set(CMAKE_CXX_FLAGS ${ORIGINAL_CXX_FLAGS})
+    set(CMAKE_C_FLAGS ${ORIGINAL_C_FLAGS})
 endif()
 
-# Installation rules
-install(TARGETS vsocky
-    RUNTIME DESTINATION bin
-)
+# Create executable
+add_executable(vsocky src/main.cpp)
 
-# Print configuration summary
-message(STATUS "")
-message(STATUS "vsocky configuration:")
-message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
-message(STATUS "  C++ compiler: ${CMAKE_CXX_COMPILER}")
-message(STATUS "  C++ flags: ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
-message(STATUS "  Testing enabled: ${ENABLE_TESTING}")
-message(STATUS "  Profiling enabled: ${ENABLE_PROFILING}")
-message(STATUS "  Debug logging: ${ENABLE_DEBUG_LOGGING}")
-message(STATUS "")
+# Apply architecture optimization to OUR target only
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # Size optimization for Alpine static builds
+    if(BUILD_STATIC)
+        target_compile_options(vsocky PRIVATE
+            -Os  # Optimize for size instead of -O3
+            -fno-asynchronous-unwind-tables
+            -fno-ident
+            -ffunction-sections
+            -fdata-sections
+            -fmerge-all-constants
+            -fno-unwind-tables
+        )
+        
+        # More aggressive linker optimizations
+        target_link_options(vsocky PRIVATE
+            -Wl,--as-needed
+            -Wl,--gc-sections
+            -Wl,--strip-all
+            -Wl,--build-id=none  # Remove build ID to save space
+            -Wl,-z,norelro       # Save ~10KB
+            -Wl,--hash-style=gnu # Smaller than sysv
+        )
+    else()
+        # Regular optimization for non-static builds
+        target_compile_options(vsocky PRIVATE
+            -O3
+            -march=x86-64-v2
+            -mtune=generic
+        )
+    endif()
+endif()
+
+# Link libraries with warning suppression for simdjson
+if(USE_SIMDJSON)
+    # Create an interface target to suppress warnings from simdjson
+    add_library(simdjson_wrapper INTERFACE)
+    target_link_libraries(simdjson_wrapper INTERFACE simdjson)
+    
+    # Suppress problematic warnings when including simdjson headers
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(simdjson_wrapper INTERFACE
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-conversion>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-sign-conversion>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>
+        )
+    endif()
+    
+    target_link_libraries(vsocky PRIVATE simdjson_wrapper)
+    target_compile_definitions(vsocky PRIVATE HAS_SIMDJSON=1)
+endif()
+
+# Static linking if requested
+if(BUILD_STATIC)
+    set_target_properties(vsocky PROPERTIES 
+        LINK_FLAGS "-static"
+        LINK_SEARCH_START_STATIC ON
+        LINK_SEARCH_END_STATIC ON
+    )
+    
+    # More aggressive static linking flags
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_link_options(vsocky PRIVATE 
+            -static-libgcc 
+            -static-libstdc++
+            -Wl,--whole-archive -lpthread -Wl,--no-whole-archive  # Ensure pthread is fully linked
+        )
+    endif()
+endif()
+
+# Install target
+install(TARGETS vsocky DESTINATION bin)
+
+# Print configuration
+message(STATUS "VSocky Configuration:")
+message(STATUS "  Version: ${PROJECT_VERSION}")
+message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Static Build: ${BUILD_STATIC}")
+message(STATUS "  Using simdjson: ${USE_SIMDJSON}")
+message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+
+# Add a custom target to show binary size
+add_custom_target(size
+    COMMAND size "$<TARGET_FILE:vsocky>"
+    DEPENDS vsocky
+    COMMENT "Binary size information"
+)

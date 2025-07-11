@@ -1,0 +1,35 @@
+# Alpine Linux build environment for vsocky
+FROM alpine:3.22
+
+# Install build dependencies
+RUN apk add --no-cache \
+    cmake \
+    make \
+    g++ \
+    git \
+    linux-headers \
+    musl-dev \
+    pkgconfig \
+    # Additional tools
+    file \
+    strace \
+    # Performance analysis
+    perf \
+    # Build optimization
+    ccache \
+    && echo "Build tools installed successfully"
+
+# Create build user (handle existing UID gracefully)
+RUN adduser -D -u 1000 builder 2>/dev/null || \
+    adduser -D builder
+
+# Set up working directory
+USER builder
+WORKDIR /home/builder
+
+# Set environment for better cmake output
+ENV TERM=xterm-256color
+ENV CMAKE_COLOR_DIAGNOSTICS=ON
+
+# Default command
+CMD ["/bin/sh"]

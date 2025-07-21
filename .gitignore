@@ -140,3 +140,4 @@ config.local.json
 # Dependencies
 third_party/*
 !third_party/.gitkeep
+Current_File_Tree.md

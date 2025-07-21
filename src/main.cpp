@@ -3,53 +3,48 @@
 #include <string_view>
 #include <cstdlib>
 #include <chrono>
+#include <print>
 
 #ifdef HAS_SIMDJSON
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#pragma GCC diagnostic ignored "-Wformat-nonliteral"
-#pragma GCC diagnostic ignored "-Wundef"
 #include <simdjson.h>
-#pragma GCC diagnostic pop
 #endif
 
 // Version info
 constexpr const char* VSOCKY_VERSION = "0.1.0";
 
 void print_usage(const char* program_name) {
-    std::cout << "Usage: " << program_name << " [options]\n"
-              << "Options:\n"
-              << "  --version    Show version information\n"
-              << "  --test-json  Test JSON parsing with simdjson\n"
-              << "  --help       Show this help message\n";
+    std::println("Usage: {} [options]", program_name);
+    std::println("Options:");
+    std::println("  --version    Show version information");
+    std::println("  --test-json  Test JSON parsing with simdjson");
+    std::println("  --help       Show this help message");
 }
 
 void print_version() {
-    std::cout << "vsocky version " << VSOCKY_VERSION << "\n";
-    std::cout << "Build info:\n";
+    std::println("vsocky version {}", VSOCKY_VERSION);
+    std::println("Build info:");
 #ifdef __VERSION__
-    std::cout << "  Compiler: " << __VERSION__ << "\n";
+    std::println("  Compiler: {}", __VERSION__);
 #else
-    std::cout << "  Compiler: Unknown\n";
+    std::println("  Compiler: Unknown");
 #endif
 #ifdef HAS_SIMDJSON
-    std::cout << "  simdjson: enabled\n";
+    std::println("  simdjson: enabled");
 #else
-    std::cout << "  simdjson: disabled\n";
+    std::println("  simdjson: disabled");
 #endif
 #ifdef ALPINE_BUILD
-    std::cout << "  Build type: Alpine Linux (musl)\n";
+    std::println("  Build type: Alpine Linux (musl)");
 #else
-    std::cout << "  Build type: Standard Linux (glibc)\n";
+    std::println("  Build type: Standard Linux (glibc)");
 #endif
 }
 
 #ifdef HAS_SIMDJSON
 void test_json_parsing() {
-    std::cout << "Testing simdjson parsing...\n";
+    std::println("Testing simdjson parsing...");
     
-    // Test JSON || custom raw string delimiter -> R"json()json" which is required!!
+    // Test JSON with custom raw string delimiter
     std::string json_data = R"json({
         "type": "execute",
         "language": "python",
@@ -67,11 +62,11 @@ void test_json_parsing() {
         std::string_view code = doc["code"];
         int64_t timeout = doc["timeout"];
         
-        std::cout << "Parsed successfully!\n";
-        std::cout << "  Type: " << type << "\n";
-        std::cout << "  Language: " << language << "\n";
-        std::cout << "  Code: " << code << "\n";
-        std::cout << "  Timeout: " << timeout << "ms\n";
+        std::println("Parsed successfully!");
+        std::println("  Type: {}", type);
+        std::println("  Language: {}", language);
+        std::println("  Code: {}", code);
+        std::println("  Timeout: {}ms", timeout);
         
         // Test performance
         auto start = std::chrono::high_resolution_clock::now();
@@ -87,24 +82,24 @@ void test_json_parsing() {
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         
-        std::cout << "\nPerformance test:\n";
-        std::cout << "  Iterations: " << iterations << "\n";
-        std::cout << "  Total time: " << duration.count() << " µs\n";
-        std::cout << "  Per iteration: " << (duration.count() / iterations) << " µs\n";
+        std::println("\nPerformance test:");
+        std::println("  Iterations: {}", iterations);
+        std::println("  Total time: {} µs", duration.count());
+        std::println("  Per iteration: {} µs", duration.count() / iterations);
         
     } catch (simdjson::simdjson_error& e) {
-        std::cerr << "JSON parsing error: " << e.what() << "\n";
+        std::println(stderr, "JSON parsing error: {}", e.what());
     }
 }
 #endif
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cout << "vsocky - Firecracker VM code execution service\n";
-        std::cout << "Starting in server mode...\n";
+        std::println("vsocky - Firecracker VM code execution service");
+        std::println("Starting in server mode...");
         
         // TODO: Implement VSock server
-        std::cout << "VSock server not yet implemented.\n";
+        std::println("VSock server not yet implemented.");
         return 0;
     }
     
@@ -120,12 +115,12 @@ int main(int argc, char* argv[]) {
 #ifdef HAS_SIMDJSON
         test_json_parsing();
 #else
-        std::cerr << "Error: vsocky was built without simdjson support\n";
+        std::println(stderr, "Error: vsocky was built without simdjson support");
         return 1;
 #endif
         return 0;
     } else {
-        std::cerr << "Unknown option: " << arg << "\n";
+        std::println(stderr, "Unknown option: {}", arg);
         print_usage(argv[0]);
         return 1;
     }

@@ -10,7 +10,6 @@
 #   shell    - Start an interactive development shell
 #   size     - Show binary sizes for all built targets
 #   analyze  - Analyze what's making the binary large
-#   compress - Compress binary with UPX (optional)
 #
 # Targets:
 #   local   - Ubuntu/WSL2 development build (default)
@@ -24,7 +23,6 @@
 #   ./scripts/dev.sh clean              # Clean all builds
 #   ./scripts/dev.sh size               # Show all binary sizes
 #   ./scripts/dev.sh analyze            # Analyze binary composition
-#   ./scripts/dev.sh compress alpine    # Compress Alpine binary
 
 set -e
 
@@ -75,14 +73,6 @@ case "$ACTION" in
     analyze)
         echo "Analyzing binary composition..."
         ./scripts/analyze-binary.sh
-        ;;
-    
-    compress)
-        if [ "$TARGET" == "alpine" ]; then
-            ./scripts/compress-binary.sh build-alpine/vsocky
-        else
-            ./scripts/compress-binary.sh "build-$TARGET/vsocky"
-        fi
         ;;
     
     *)

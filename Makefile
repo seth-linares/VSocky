@@ -12,14 +12,6 @@ build:
 build-alpine:
 	@./scripts/build-alpine.sh
 
-# Build Alpine with size optimization
-size-optimize:
-	@echo "Building size-optimized Alpine binary..."
-	@./scripts/build-alpine.sh Release clean
-	@echo ""
-	@echo "Size before compression:"
-	@ls -lh build-alpine/vsocky | awk '{print "  " $5}'
-
 # Run tests
 test:
 	@./scripts/dev.sh test local
@@ -51,16 +43,12 @@ size:
 analyze:
 	@./scripts/analyze-binary.sh
 
-# Compress binary with UPX (optional)
-compress:
-	@./scripts/compress-binary.sh
 
 # Show help
 help:
 	@echo "VSocky Development Commands:"
 	@echo "  make build         - Build for local development (Ubuntu/WSL2)"
 	@echo "  make build-alpine  - Build static binary for Alpine"
-	@echo "  make size-optimize - Build Alpine with maximum size optimization"
 	@echo "  make test          - Run local tests"
 	@echo "  make test-alpine   - Run Alpine tests"
 	@echo "  make clean         - Clean all build directories"
@@ -69,5 +57,4 @@ help:
 	@echo "  make check         - Check development environment"
 	@echo "  make size          - Show binary sizes"
 	@echo "  make analyze       - Analyze what's making binary large"
-	@echo "  make compress      - Compress binary with UPX (optional)"
 	@echo "  make help          - Show this help"

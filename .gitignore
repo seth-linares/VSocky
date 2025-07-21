@@ -107,8 +107,7 @@ perf.data.old
 flamegraph.svg
 
 # Documentation build outputs
-docs/html/
-docs/latex/
+docs/
 *.doxygen
 
 # Temporary files

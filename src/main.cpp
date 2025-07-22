@@ -1,7 +1,5 @@
-#include <iostream>
 #include <string>
 #include <string_view>
-#include <cstdlib>
 #include <chrono>
 #include <print>
 
@@ -69,6 +67,8 @@ void test_json_parsing() {
         std::println("  Timeout: {}ms", timeout);
         
         // Test performance
+
+        // Get the starting point of time for our loop
         auto start = std::chrono::high_resolution_clock::now();
         const int iterations = 100000;
         
@@ -78,14 +78,16 @@ void test_json_parsing() {
             // Force parsing
             [[maybe_unused]] auto t = d["type"];
         }
-        
+
+        // Now we can clock when we got out of the loop
         auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        // And we can figure out in nanoseconds how long it took
+        auto ns_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
         
         std::println("\nPerformance test:");
         std::println("  Iterations: {}", iterations);
-        std::println("  Total time: {} µs", duration.count());
-        std::println("  Per iteration: {} µs", duration.count() / iterations);
+        std::println("  Total time: {} µs", ns_duration.count() / 1000); // Print our total time in microseconds (since it's thousands of ns)
+        std::println("  Per iteration: {} nanoseconds", ns_duration.count() / iterations); // And find out average ns per iteration
         
     } catch (simdjson::simdjson_error& e) {
         std::println(stderr, "JSON parsing error: {}", e.what());

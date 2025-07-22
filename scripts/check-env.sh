@@ -29,7 +29,7 @@ echo ""
 
 # Check binaries
 echo "Built Binaries:"
-for binary in build-local/vsocky build-alpine/vsocky; do
+for binary in build/vsocky build-alpine/vsocky; do
     if [ -f "$binary" ]; then
         SIZE=$(ls -lh "$binary" | awk '{print $5}')
         echo "  ✓ $binary ($SIZE)"
@@ -49,7 +49,7 @@ echo ""
 
 # Check simdjson
 echo "Dependencies:"
-if [ -d "build-local/_deps/simdjson-src" ]; then
+if [ -d "build/_deps/simdjson-src" ]; then
     echo "  ✓ simdjson (fetched)"
 else
     echo "  ✗ simdjson (will be fetched on first build)"
@@ -57,9 +57,9 @@ fi
 echo ""
 
 # Performance check
-if [ -f "build-local/vsocky" ]; then
+if [ -f "build/vsocky" ]; then
     echo "Quick Performance Test:"
-    TIME=$( { time ./build-local/vsocky --version >/dev/null 2>&1; } 2>&1 | grep real | awk '{print $2}')
+    TIME=$( { time ./build/vsocky --version >/dev/null 2>&1; } 2>&1 | grep real | awk '{print $2}')
     echo "  Startup time: $TIME"
 fi
 

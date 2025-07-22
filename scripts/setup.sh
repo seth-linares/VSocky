@@ -5,9 +5,6 @@
 # ========================================================================
 # docker rmi vsocky-alpine-build vsocky-ubuntu-build vsocky-runtime 2>/dev/null || true
 
-
-
-
 set -e
 
 echo "Setting up vsocky development environment..."
@@ -16,7 +13,6 @@ echo "Setting up vsocky development environment..."
 mkdir -p third_party
 mkdir -p build
 mkdir -p build-alpine
-mkdir -p build-local
 
 # Check for required tools
 echo "Checking dependencies..."

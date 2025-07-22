@@ -5,9 +5,9 @@ set -e
 echo "Running tests..."
 
 # Local tests (if available)
-if [ -d "build-local" ] && [ -f "build-local/vsocky_test" ]; then
+if [ -d "build" ] && [ -f "build/vsocky_test" ]; then
     echo "Running local tests..."
-    ./build-local/vsocky_test
+    ./build/vsocky_test
 fi
 
 # Alpine tests

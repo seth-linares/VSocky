@@ -2,7 +2,7 @@
 set -e
 
 BUILD_TYPE="${1:-Release}"
-BUILD_DIR="build-local"
+BUILD_DIR="build"  # Changed from build-local
 
 echo "Building vsocky locally..."
 echo "Build type: $BUILD_TYPE"

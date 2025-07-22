@@ -62,11 +62,3 @@ echo "-----------------"
 if [ -f "build-alpine/vsocky" ]; then
     size -A build-alpine/vsocky
 fi
-
-echo ""
-echo "5. Recommendations:"
-echo "-------------------"
-echo "- Current simdjson adds significant size (~140KB)"
-echo "- Consider using a lighter JSON parser for smaller binary"
-echo "- Or implement minimal custom JSON parsing"
-echo "- UPX compression can reduce size by 50-70%"

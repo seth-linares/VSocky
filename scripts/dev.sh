@@ -29,6 +29,20 @@ set -e
 ACTION="${1:-build}"
 TARGET="${2:-local}"
 
+# Map target to directory
+case "$TARGET" in
+    local)
+        BUILD_DIR="build"
+        ;;
+    alpine)
+        BUILD_DIR="build-alpine"
+        ;;
+    *)
+        echo "Unknown target: $TARGET"
+        exit 1
+        ;;
+esac
+
 case "$ACTION" in
     build)
         echo "Building for $TARGET..."
@@ -41,8 +55,8 @@ case "$ACTION" in
     
     test)
         echo "Running tests..."
-        if [ -f "build-$TARGET/vsocky" ]; then
-            "./build-$TARGET/vsocky" --test-json
+        if [ -f "$BUILD_DIR/vsocky" ]; then
+            "$BUILD_DIR/vsocky" --test-json
         else
             echo "Error: No binary found for $TARGET"
             exit 1
@@ -51,7 +65,7 @@ case "$ACTION" in
     
     clean)
         echo "Cleaning build directories..."
-        rm -rf build-local build-alpine build-alpine-no-json build-alpine-debug
+        rm -rf build build-alpine build-alpine-no-json build-alpine-debug
         echo "Clean complete!"
         ;;
     
@@ -63,7 +77,7 @@ case "$ACTION" in
     size)
         echo "Binary sizes:"
         echo "============="
-        for binary in build-*/vsocky; do
+        for binary in build*/vsocky; do
             if [ -f "$binary" ]; then
                 printf "%-30s %s\n" "$binary:" "$(ls -lh "$binary" | awk '{print $5}')"
             fi

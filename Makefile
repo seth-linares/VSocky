@@ -1,5 +1,5 @@
 # VSocky Makefile - Quick commands for development
-.PHONY: all build build-alpine test clean shell help analyze compress size-optimize
+.PHONY: all build build-alpine test clean shell help analyze
 
 # Default target
 all: build

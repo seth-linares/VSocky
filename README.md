@@ -25,11 +25,3 @@ chmod +x scripts/*.sh
 # Build for Alpine Linux
 ./scripts/build-alpine.sh
 ```
-
-### Binary Size Optimization
-
-Current binary sizes:
-- Local build: ~200KB (dynamic linking)
-- Alpine build: ~784KB (static, with simdjson)
-
-Note: simdjson adds ~140KB. Consider alternatives if size is critical.

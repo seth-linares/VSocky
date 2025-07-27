@@ -30,8 +30,6 @@
 *.exe
 *.out
 *.app
-vsocky
-vsocky_test
 bench_*
 !bench_*.cpp
 

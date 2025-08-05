@@ -15,9 +15,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Options
 option(BUILD_STATIC "Build static binary" ON)
 option(USE_SIMDJSON "Use simdjson for JSON parsing" ON)
+option(BUILD_TESTS "Build tests" ON)
 
-# Include our compiler flags (now without architecture flags)
+# Include our compiler flags
 include(cmake/CompilerFlags.cmake)
+
+# Add include directories
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Find packages
 include(FetchContent)
@@ -61,8 +65,25 @@ if(USE_SIMDJSON)
     set(CMAKE_C_FLAGS ${ORIGINAL_C_FLAGS})
 endif()
 
+# Collect source files
+set(VSOCKY_SOURCES
+    src/main.cpp
+    
+    # Utilities
+    src/utils/signal_handler.cpp
+    src/utils/base64.cpp
+    
+    # TODO: Add these as we implement them
+    # src/vsocket/vsock_server.cpp
+    # src/vsocket/connection.cpp
+    # src/vsocket/message_framer.cpp
+    # src/protocol/request.cpp
+    # src/protocol/response.cpp
+    # src/protocol/handler.cpp
+)
+
 # Create executable
-add_executable(vsocky src/main.cpp)
+add_executable(vsocky ${VSOCKY_SOURCES})
 
 # Apply architecture optimization to OUR target only
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -134,6 +155,12 @@ if(BUILD_STATIC)
     endif()
 endif()
 
+# Testing support
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # Install target
 install(TARGETS vsocky DESTINATION bin)
 
@@ -144,6 +171,7 @@ message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  Static Build: ${BUILD_STATIC}")
 message(STATUS "  Using simdjson: ${USE_SIMDJSON}")
+message(STATUS "  Build Tests: ${BUILD_TESTS}")
 message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
 # Add a custom target to show binary size

@@ -1,98 +1,104 @@
 #!/bin/bash
-# scripts/dev.sh - Quick development iteration script
-#
-# Usage: ./scripts/dev.sh [ACTION] [TARGET]
-#
-# Actions:
-#   build    - Build vsocky for the specified target (default)
-#   test     - Run the built binary with --test-json
-#   clean    - Remove all build directories
-#   shell    - Start an interactive development shell
-#   size     - Show binary sizes for all built targets
-#   analyze  - Analyze what's making the binary large
-#
-# Targets:
-#   local   - Ubuntu/WSL2 development build (default)
-#   alpine  - Alpine Linux static build
-#
-# Examples:
-#   ./scripts/dev.sh                    # Build for local (default)
-#   ./scripts/dev.sh build alpine       # Build Alpine static binary
-#   ./scripts/dev.sh test local         # Test local build
-#   ./scripts/dev.sh shell alpine       # Start Alpine dev shell
-#   ./scripts/dev.sh clean              # Clean all builds
-#   ./scripts/dev.sh size               # Show all binary sizes
-#   ./scripts/dev.sh analyze            # Analyze binary composition
+# Development helper script
 
 set -e
 
-ACTION="${1:-build}"
-TARGET="${2:-local}"
+COMMAND="${1:-help}"
 
-# Map target to directory
-case "$TARGET" in
-    local)
-        BUILD_DIR="build"
-        ;;
-    alpine)
-        BUILD_DIR="build-alpine"
-        ;;
-    *)
-        echo "Unknown target: $TARGET"
-        exit 1
-        ;;
-esac
-
-case "$ACTION" in
-    build)
-        echo "Building for $TARGET..."
-        if [ "$TARGET" == "alpine" ]; then
-            ./scripts/build-alpine.sh Release
-        else
-            ./scripts/build-local.sh Release
-        fi
-        ;;
-    
+case "$COMMAND" in
     test)
-        echo "Running tests..."
-        if [ -f "$BUILD_DIR/vsocky" ]; then
-            "$BUILD_DIR/vsocky" --test-json
+        TARGET="${2:-local}"
+        echo "Running tests for $TARGET build..."
+        
+        if [ "$TARGET" = "local" ]; then
+            BUILD_DIR="build"
         else
-            echo "Error: No binary found for $TARGET"
-            exit 1
+            BUILD_DIR="build-alpine"
+        fi
+        
+        if [ -d "$BUILD_DIR" ] && [ -f "$BUILD_DIR/tests/test_utils" ]; then
+            cd "$BUILD_DIR" && ctest --output-on-failure
+        else
+            echo "No tests found. Build first with: make build"
         fi
         ;;
-    
+        
+    run)
+        TARGET="${2:-local}"
+        shift 2
+        
+        if [ "$TARGET" = "local" ]; then
+            BUILD_DIR="build"
+        else
+            BUILD_DIR="build-alpine"
+        fi
+        
+        if [ -f "$BUILD_DIR/vsocky" ]; then
+            "$BUILD_DIR/vsocky" "$@"
+        else
+            echo "Binary not found. Build first with: make build"
+        fi
+        ;;
+        
     clean)
         echo "Cleaning build directories..."
-        rm -rf build build-alpine build-alpine-no-json build-alpine-debug
+        rm -rf build build-alpine build-*
         echo "Clean complete!"
         ;;
-    
-    shell)
-        echo "Starting development shell for $TARGET..."
-        ./scripts/dev-shell.sh "$TARGET"
-        ;;
-    
+        
     size)
         echo "Binary sizes:"
         echo "============="
-        for binary in build*/vsocky; do
-            if [ -f "$binary" ]; then
-                printf "%-30s %s\n" "$binary:" "$(ls -lh "$binary" | awk '{print $5}')"
-            fi
-        done
+        
+        if [ -f "build/vsocky" ]; then
+            echo -n "Local build:  "
+            ls -lh build/vsocky | awk '{print $5}'
+            size build/vsocky
+        fi
+        
+        echo ""
+        
+        if [ -f "build-alpine/vsocky" ]; then
+            echo -n "Alpine build: "
+            ls -lh build-alpine/vsocky | awk '{print $5}'
+            size build-alpine/vsocky 2>/dev/null || echo "(size command may not work for Alpine binary on non-Alpine host)"
+        fi
         ;;
-    
-    analyze)
-        echo "Analyzing binary composition..."
-        ./scripts/analyze-binary.sh
+        
+    deps)
+        echo "Checking dependencies..."
+        
+        if [ -f "build/vsocky" ]; then
+            echo "Local build dependencies:"
+            ldd build/vsocky || echo "No dynamic dependencies"
+        fi
+        
+        echo ""
+        
+        if [ -f "build-alpine/vsocky" ]; then
+            echo "Alpine build dependencies:"
+            ldd build-alpine/vsocky 2>&1 | grep -q "not a dynamic executable" && \
+                echo "✓ Static binary (no dependencies)" || \
+                ldd build-alpine/vsocky 2>/dev/null || echo "Cannot check on this system"
+        fi
         ;;
-    
-    *)
-        echo "Usage: $0 [build|test|clean|shell|size|analyze|compress] [local|alpine]"
-        echo "Run with no arguments for default (build local)"
-        echo "See script header for detailed examples"
-        exit 1
+        
+    help|*)
+        echo "VSocky development helper"
+        echo ""
+        echo "Usage: ./scripts/dev.sh [command] [options]"
+        echo ""
+        echo "Commands:"
+        echo "  test [local|alpine]    Run tests for specified build"
+        echo "  run [local|alpine] ... Run vsocky with arguments"
+        echo "  clean                  Remove all build directories"
+        echo "  size                   Show binary sizes"
+        echo "  deps                   Check binary dependencies"
+        echo "  help                   Show this help"
+        echo ""
+        echo "Examples:"
+        echo "  ./scripts/dev.sh test local"
+        echo "  ./scripts/dev.sh run local --version"
+        echo "  ./scripts/dev.sh run alpine --help"
         ;;
 esac

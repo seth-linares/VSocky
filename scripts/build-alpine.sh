@@ -2,67 +2,72 @@
 set -e
 
 BUILD_TYPE="${1:-Release}"
-CLEAN_BUILD="${2:-}"
+BUILD_DIR="build-alpine"
 
-echo "Building vsocky for Alpine Linux..."
+echo "Building vsocky for Alpine (static binary)..."
 echo "Build type: $BUILD_TYPE"
 
-# Clean build directory if requested
-if [ "$CLEAN_BUILD" == "clean" ]; then
-    echo "Cleaning build directory..."
-    rm -rf build-alpine
-fi
-
-# Create build directory on host to preserve outputs
-mkdir -p build-alpine
-
-# Run build in Alpine container
-docker run --rm -it \
-    -v "$(pwd):/workspace" \
+# Run the build in Alpine container
+docker run --rm \
+    -v "$PWD:/workspace" \
     -w /workspace \
-    -e TERM=xterm-256color \
-    vsocky-alpine-build \
+    -u "$(id -u):$(id -g)" \
+    vsocky-alpine-build:latest \
     sh -c "
-        set -e
-        echo 'Configuring build...'
-        cmake -B build-alpine \
-            -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+        # Create directory structure
+        if [ ! -d 'include/vsocky' ]; then
+            echo 'Setting up directory structure...'
+            sh scripts/setup-dirs.sh
+        fi
+        
+        # Configure
+        cmake -B '$BUILD_DIR' \
+            -DCMAKE_BUILD_TYPE='$BUILD_TYPE' \
             -DBUILD_STATIC=ON \
             -DUSE_SIMDJSON=ON \
-            -DCMAKE_VERBOSE_MAKEFILE=OFF
+            -DBUILD_TESTS=ON
         
-        echo ''
-        echo 'Building vsocky...'
-        cmake --build build-alpine -j\$(nproc)
+        # Build
+        cmake --build '$BUILD_DIR' -j\$(nproc)
         
-        echo ''
-        echo 'Build complete! Testing binary...'
-        echo '================================'
-        ./build-alpine/vsocky --version
-        echo ''
-        ./build-alpine/vsocky --test-json
-        echo ''
-        echo 'Binary information:'
-        echo '=================='
-        file ./build-alpine/vsocky
-        echo ''
-        echo -n 'Size: '
-        du -h ./build-alpine/vsocky | cut -f1
-        echo ''
-        echo 'Dependencies:'
-        ldd ./build-alpine/vsocky 2>/dev/null || echo '  No dynamic dependencies (static binary)'
-        echo ''
-        echo -n 'Dynamic symbols: '
-        nm -D ./build-alpine/vsocky 2>/dev/null | wc -l
-        echo ''
-        # Show detailed size breakdown
-        echo 'Size breakdown:'
-        size ./build-alpine/vsocky 2>/dev/null || true
+        # Run tests
+        if [ -f '$BUILD_DIR/tests/test_utils' ]; then
+            echo ''
+            echo 'Running unit tests...'
+            echo '===================='
+            cd '$BUILD_DIR' && ctest --output-on-failure
+            cd - > /dev/null
+        fi
     "
 
+# Test the binary outside container
 echo ""
-echo "Alpine build complete!"
-echo "Binary location: ./build-alpine/vsocky"
+echo "Testing vsocky binary..."
+echo "======================="
+"$BUILD_DIR/vsocky" --version || echo "Note: Binary may not run on host if not Alpine"
+
+# Show binary info
 echo ""
-echo "To test in Alpine environment: "
-echo "docker run --rm -v \"$(pwd):/workspace\" alpine:3.22 /workspace/build-alpine/vsocky --version"
+echo "Binary information:"
+echo "==================="
+file "$BUILD_DIR/vsocky"
+echo -n "Size: "
+ls -lh "$BUILD_DIR/vsocky" | awk '{print $5}'
+
+# Check if truly static
+echo ""
+echo "Static analysis:"
+if ldd "$BUILD_DIR/vsocky" 2>&1 | grep -q "not a dynamic executable"; then
+    echo "✓ Binary is statically linked"
+else
+    echo "⚠ Binary appears to have dynamic dependencies:"
+    ldd "$BUILD_DIR/vsocky" 2>/dev/null || true
+fi
+
+# Symbols check
+echo ""
+echo "Binary size breakdown:"
+size "$BUILD_DIR/vsocky" 2>/dev/null || true
+
+echo ""
+echo "Build complete! Static binary at: $BUILD_DIR/vsocky"

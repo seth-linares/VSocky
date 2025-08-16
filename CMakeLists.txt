@@ -73,9 +73,11 @@ set(VSOCKY_SOURCES
     src/utils/signal_handler.cpp
     src/utils/base64.cpp
     
+    # VSock Socket Layer
+    src/vsocket/connection.cpp
+    
     # TODO: Add these as we implement them
     # src/vsocket/vsock_server.cpp
-    # src/vsocket/connection.cpp
     # src/vsocket/message_framer.cpp
     # src/protocol/request.cpp
     # src/protocol/response.cpp
@@ -155,10 +157,34 @@ if(BUILD_STATIC)
     endif()
 endif()
 
-# Testing support
+# =============================================================================
+# TESTING SUPPORT
+# =============================================================================
 if(BUILD_TESTS)
+    # Enable testing functionality
     enable_testing()
+    
+    # Add the tests subdirectory
+    # This will process tests/CMakeLists.txt which defines test targets
     add_subdirectory(tests)
+    
+    # Create a convenience target to build all tests
+    # Note: This depends on specific test executables, so it must come AFTER add_subdirectory(tests)
+    add_custom_target(build_tests
+        DEPENDS test_utils test_connection  # Add more test executables as we create them
+        COMMENT "Building all tests"
+    )
+    
+    # Create a target to build and run all tests with nice output
+    # This is the main target developers should use during development
+    add_custom_target(check
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        DEPENDS build_tests
+        COMMENT "Building and running all tests"
+    )
+    
+    # Note: test_verbose, test_unit, and test_valgrind targets are defined in tests/CMakeLists.txt
+    # We don't duplicate them here to avoid naming conflicts
 endif()
 
 # Install target
